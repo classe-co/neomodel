@@ -1,8 +1,9 @@
 import functools
 import inspect
 import sys
-from enum import EnumMeta
 from importlib import import_module
+from typing import List
+from uuid import UUID
 
 from .core import db
 from .exceptions import NotConnected, RelationshipClassRedefined
@@ -66,18 +67,15 @@ class RelationshipManager(object):
         if not hasattr(obj, 'id'):
             raise ValueError("Can't perform operation on unsaved node " + repr(obj))
 
-    @check_source
-    def connect(self, node, properties=None):
+    def connect_helper(self, query: str, properties=None, node=None):
         """
-        Connect a node
+        Function to support both connect() and bulk_connect() functions.
 
-        :param node:
-        :param properties: for the new relationship
-        :type: dict
-        :return:
+        The beginning of the query - either UNWIND or MATCH - is set in the function itself
+        and sent in the query parameter. The rest of the query in both connect() and
+        bulk_connect() is very similar so it is built and executed here.
+
         """
-        self._check_node(node)
-
         if not self.definition['model'] and properties:
             raise NotImplementedError(
                 "Relationship properties without using a relationship model "
@@ -104,10 +102,12 @@ class RelationshipManager(object):
                 tmp.pre_save()
 
         new_rel = _rel_merge_helper(lhs='us', rhs='them', ident='r', relation_properties=rp, **self.definition)
-        q = "MATCH (them), (us) WHERE id(them)=$them and id(us)=$self " \
-            "MERGE" + new_rel
+        q = query + new_rel
 
-        params['them'] = node.id
+        if node:
+            params['them'] = node.id
+        else:
+            params['them'] = "element"
 
         if not rel_model:
             self.source.cypher(q, params)
@@ -120,6 +120,29 @@ class RelationshipManager(object):
             rel_instance.post_save()
 
         return rel_instance
+
+    @check_source
+    def connect(self, node, properties=None):
+        """
+        Connect a node
+
+        :param node:
+        :param properties: for the new relationship
+        :type: dict
+        :return:
+        """
+        self._check_node(node)
+
+        q = "MATCH (them), (us) WHERE id(them)=$them and id(us)=$self " \
+            "MERGE"
+        return self.connect_helper(q, properties, node)
+
+    @check_source
+    def bulk_connect(self, nodes: List[UUID], properties=None):
+        q = f"UNWIND {nodes} as element MATCH (them), (us) WHERE them.uuid=element " \
+            "and id(us)=$self MERGE"
+        return self.connect_helper(q, properties)
+
 
     @check_source
     def replace(self, node, properties=None):
