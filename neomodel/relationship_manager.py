@@ -126,7 +126,7 @@ class RelationshipManager(object):
         """
         Connect a node
 
-        :param node:
+        :param node: a node instance which will be connected to the source node
         :param properties: for the new relationship
         :type: dict
         :return:
@@ -139,6 +139,13 @@ class RelationshipManager(object):
 
     @check_source
     def bulk_connect(self, nodes: List[UUID], properties=None):
+        """
+        Connect a list of nodes to the source node.
+
+        Unlike `connect()`, this function receives a list of node UUIDs,
+        not a node instance. Using UNWIND, the query connects all nodes in
+        the list to the source node.
+        """
         q = f"UNWIND {nodes} as element MATCH (them), (us) WHERE them.uuid=element " \
             "and id(us)=$self MERGE"
         return self.connect_helper(q, properties)
