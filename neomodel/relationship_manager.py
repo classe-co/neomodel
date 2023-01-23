@@ -67,7 +67,7 @@ class RelationshipManager(object):
         if not hasattr(obj, 'id'):
             raise ValueError("Can't perform operation on unsaved node " + repr(obj))
 
-    def connect_helper(self, query: str, properties=None, node=None):
+    def connect_helper(self, query: str, properties=None, node=None, nodes=None):
         """
         Function to support both connect() and bulk_connect() functions.
 
@@ -107,7 +107,8 @@ class RelationshipManager(object):
         if node:
             params['them'] = node.id
         else:
-            params['them'] = "element"
+            params['them'] = "uuid"
+            params['uuids'] = nodes
 
         if not rel_model:
             self.source.cypher(q, params)
@@ -138,17 +139,23 @@ class RelationshipManager(object):
         return self.connect_helper(q, properties, node)
 
     @check_source
-    def bulk_connect(self, nodes: List[UUID], properties=None):
+    def bulk_connect(self, nodes: List[UUID], label, properties=None):
         """
         Connect a list of nodes to the source node.
+
+        :param nodes: a list of node UUIDs which will be connected to the source node
+        :param label: Label for nodes in list
+        :param properties: for the new relationship
+        :type: dict
+        :return:
 
         Unlike `connect()`, this function receives a list of node UUIDs,
         not a node instance. Using UNWIND, the query connects all nodes in
         the list to the source node.
         """
-        q = f"UNWIND {nodes} as element MATCH (them), (us) WHERE them.uuid=element " \
+        q = f"UNWIND $uuids as uuid MATCH (them: {label}), (us) WHERE them.uuid=uuid " \
             "and id(us)=$self MERGE"
-        return self.connect_helper(q, properties)
+        return self.connect_helper(q, properties=properties, nodes=nodes)
 
 
     @check_source
