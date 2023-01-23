@@ -140,7 +140,7 @@ class RelationshipManager(object):
         return self.connect_helper(q, properties, node)
 
     @check_source
-    def bulk_connect(self, nodes: List[UUID], label, properties=None):
+    def bulk_connect(self, nodes: List[UUID], properties=None):
         """
         Connect a list of nodes to the source node.
 
@@ -154,7 +154,7 @@ class RelationshipManager(object):
         not a node instance. Using UNWIND, the query connects all nodes in
         the list to the source node.
         """
-        q = f"UNWIND $uuids as uuid MATCH (them: {label}), (us) WHERE them.uuid=uuid " \
+        q = f"UNWIND $uuids as uuid MATCH (them), (us) WHERE them.uuid=uuid " \
             "and id(us)=$self MERGE"
         return self.connect_helper(q, properties=properties, nodes=nodes)
 
