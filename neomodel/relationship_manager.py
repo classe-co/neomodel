@@ -67,8 +67,7 @@ class RelationshipManager(object):
         if not hasattr(obj, 'id'):
             raise ValueError("Can't perform operation on unsaved node " + repr(obj))
 
-    @classmethod
-    def connect_helper(cls, query: str, properties=None, node=None, nodes=None):
+    def connect_helper(self, query: str, properties=None, node=None, nodes=None):
         """
         Function to support both connect() and bulk_connect() functions.
 
@@ -77,14 +76,14 @@ class RelationshipManager(object):
         bulk_connect() is very similar so it is built and executed here.
 
         """
-        if not cls.definition['model'] and properties:
+        if not self.definition['model'] and properties:
             raise NotImplementedError(
                 "Relationship properties without using a relationship model "
                 "is no longer supported."
             )
 
         params = {}
-        rel_model = cls.definition['model']
+        rel_model = self.definition['model']
         rp = None  # rel_properties
 
         if rel_model:
@@ -102,7 +101,7 @@ class RelationshipManager(object):
             if hasattr(tmp, 'pre_save'):
                 tmp.pre_save()
 
-        new_rel = _rel_merge_helper(lhs='us', rhs='them', ident='r', relation_properties=rp, **cls.definition)
+        new_rel = _rel_merge_helper(lhs='us', rhs='them', ident='r', relation_properties=rp, **self.definition)
         q = query + new_rel
 
         if node:
@@ -112,11 +111,11 @@ class RelationshipManager(object):
             params['uuids'] = nodes
 
         if not rel_model:
-            cls.source.cypher(q, params)
+            self.source.cypher(q, params)
             return True
 
-        rel_ = cls.source.cypher(q + " RETURN r", params)[0][0][0]
-        rel_instance = cls._set_start_end_cls(rel_model.inflate(rel_), node)
+        rel_ = self.source.cypher(q + " RETURN r", params)[0][0][0]
+        rel_instance = self._set_start_end_cls(rel_model.inflate(rel_), node)
 
         if hasattr(rel_instance, 'post_save'):
             rel_instance.post_save()
@@ -134,13 +133,14 @@ class RelationshipManager(object):
         :return:
         """
         self._check_node(node)
-
-        q = "MATCH (them), (us) WHERE id(them)=$them and id(us)=$self " \
+        source_label = self.source.__class__.__name__
+        dest_label = node.__class__.__name__
+        q = f"MATCH (them:{dest_label}), (us:{source_label}) WHERE id(them)=$them and id(us)=$self " \
             "MERGE"
         return self.connect_helper(q, properties, node)
 
     @check_source
-    def bulk_connect(self, nodes: List[UUID], properties=None):
+    def bulk_connect(self, nodes: List[UUID], label, properties=None):
         """
         Connect a list of nodes to the source node.
 
@@ -154,7 +154,8 @@ class RelationshipManager(object):
         not a node instance. Using UNWIND, the query connects all nodes in
         the list to the source node.
         """
-        q = f"UNWIND $uuids as uuid MATCH (them), (us) WHERE them.uuid=uuid " \
+        source_label = self.source.__class__.__name__
+        q = f"UNWIND $uuids as uuid MATCH (them:{label}), (us:{source_label}) WHERE them.uuid=uuid " \
             "and id(us)=$self MERGE"
         return self.connect_helper(q, properties=properties, nodes=nodes)
 
