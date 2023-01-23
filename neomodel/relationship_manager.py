@@ -67,7 +67,8 @@ class RelationshipManager(object):
         if not hasattr(obj, 'id'):
             raise ValueError("Can't perform operation on unsaved node " + repr(obj))
 
-    def connect_helper(self, query: str, properties=None, node=None, nodes=None):
+    @classmethod
+    def connect_helper(cls, query: str, properties=None, node=None, nodes=None):
         """
         Function to support both connect() and bulk_connect() functions.
 
@@ -76,14 +77,14 @@ class RelationshipManager(object):
         bulk_connect() is very similar so it is built and executed here.
 
         """
-        if not self.definition['model'] and properties:
+        if not cls.definition['model'] and properties:
             raise NotImplementedError(
                 "Relationship properties without using a relationship model "
                 "is no longer supported."
             )
 
         params = {}
-        rel_model = self.definition['model']
+        rel_model = cls.definition['model']
         rp = None  # rel_properties
 
         if rel_model:
@@ -101,7 +102,7 @@ class RelationshipManager(object):
             if hasattr(tmp, 'pre_save'):
                 tmp.pre_save()
 
-        new_rel = _rel_merge_helper(lhs='us', rhs='them', ident='r', relation_properties=rp, **self.definition)
+        new_rel = _rel_merge_helper(lhs='us', rhs='them', ident='r', relation_properties=rp, **cls.definition)
         q = query + new_rel
 
         if node:
@@ -111,11 +112,11 @@ class RelationshipManager(object):
             params['uuids'] = nodes
 
         if not rel_model:
-            self.source.cypher(q, params)
+            cls.source.cypher(q, params)
             return True
 
-        rel_ = self.source.cypher(q + " RETURN r", params)[0][0][0]
-        rel_instance = self._set_start_end_cls(rel_model.inflate(rel_), node)
+        rel_ = cls.source.cypher(q + " RETURN r", params)[0][0][0]
+        rel_instance = cls._set_start_end_cls(rel_model.inflate(rel_), node)
 
         if hasattr(rel_instance, 'post_save'):
             rel_instance.post_save()
