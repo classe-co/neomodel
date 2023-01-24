@@ -387,6 +387,9 @@ class RelationshipManager(object):
         """
         return self._new_traversal().all()
 
+    def values(self, *args):
+        return NodeSet(self._new_traversal()).values(*args)
+
     def __iter__(self):
         return self._new_traversal().__iter__()
 

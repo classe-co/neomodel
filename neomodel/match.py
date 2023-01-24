@@ -4,6 +4,8 @@ from .exceptions import MultipleNodesReturned
 from .match_q import Q, QBase
 import inspect
 import re
+from typing import List
+
 OUTGOING, INCOMING, EITHER = 1, -1, 0
 
 
@@ -322,7 +324,13 @@ class QueryBuilder(object):
         # build source
         lhs_ident = self.build_source(traversal.source)
         rhs_ident = traversal.name + rhs_label
-        self._ast['return'] = traversal.name
+        # self._ast['return'] = traversal.name
+
+        if hasattr(self.node_set, 'ret_values'):
+            all_values = [f"{traversal.name}.{value}" for value in self.node_set.ret_values]
+            self._ast['return'] = ','.join(all_values)
+        else:
+            self._ast['return'] = traversal.name
         self._ast['result_class'] = traversal.target_class
 
         rel_ident = self.create_ident()
@@ -496,7 +504,7 @@ class QueryBuilder(object):
             # inject id = into ast
             self._ast['return'] = 'id({})'.format(self._ast['return'])
         query = self.build_query()
-        results, _ = db.cypher_query(query, self._query_params, resolve_objects=True)            
+        results, _ = db.cypher_query(query, self._query_params, resolve_objects=True)
         # The following is not as elegant as it could be but had to be copied from the 
         # version prior to cypher_query with the resolve_objects capability.
         # It seems that certain calls are only supposed to be focusing to the first 
@@ -504,8 +512,8 @@ class QueryBuilder(object):
         if results:
             return [n[0] for n in results]
         return []
-        
-        
+
+
 class BaseSet(object):
     """
     Base class for all node sets.
@@ -582,6 +590,7 @@ class NodeSet(BaseSet):
 
         self.filters = []
         self.q_filters = Q()
+        self.ret_values = None
 
         # used by has()
         self.must_match = {}
@@ -732,6 +741,10 @@ class NodeSet(BaseSet):
 
                 self._order_by.append(prop + (' DESC' if desc else ''))
 
+        return self
+
+    def values(self, *args):
+        self.ret_values = args
         return self
 
 
