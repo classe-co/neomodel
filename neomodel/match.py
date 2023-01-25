@@ -324,7 +324,11 @@ class QueryBuilder(object):
         # build source
         lhs_ident = self.build_source(traversal.source)
         rhs_ident = traversal.name + rhs_label
-        self._ast['return'] = traversal.name
+        if type(self.node_set) == NodeSet and len(self.node_set.ret_values) > 0:
+            all_values = [f"{traversal.name}.{value}" for value in self.node_set.ret_values]
+            self._ast['return'] = ','.join(all_values)
+        else:
+            self._ast['return'] = traversal.name
         self._ast['result_class'] = traversal.target_class
 
         rel_ident = self.create_ident()
@@ -584,7 +588,7 @@ class NodeSet(BaseSet):
 
         self.filters = []
         self.q_filters = Q()
-        self.ret_values = None
+        self.ret_values = []
 
         # used by has()
         self.must_match = {}
@@ -740,7 +744,7 @@ class NodeSet(BaseSet):
     def values(self, *args):
         traversal_model_attributes = dict(self.source_class.__all_properties__)
         args = [arg for arg in args if arg in traversal_model_attributes.keys()]
-        self.ret_values = tuple(args)
+        self.ret_values = args
         return self
 
 
