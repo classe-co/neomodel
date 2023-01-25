@@ -324,13 +324,7 @@ class QueryBuilder(object):
         # build source
         lhs_ident = self.build_source(traversal.source)
         rhs_ident = traversal.name + rhs_label
-        # self._ast['return'] = traversal.name
-
-        if hasattr(self.node_set, 'ret_values'):
-            all_values = [f"{traversal.name}.{value}" for value in self.node_set.ret_values]
-            self._ast['return'] = ','.join(all_values)
-        else:
-            self._ast['return'] = traversal.name
+        self._ast['return'] = traversal.name
         self._ast['result_class'] = traversal.target_class
 
         rel_ident = self.create_ident()
