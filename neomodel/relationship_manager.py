@@ -388,6 +388,12 @@ class RelationshipManager(object):
         return self._new_traversal().all()
 
     def values(self, *args):
+        """
+        Return only specified fields for each node.
+
+        :param args: string field names
+        :return: NodeSet
+        """
         return NodeSet(self._new_traversal()).values(*args)
 
     def __iter__(self):

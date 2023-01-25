@@ -742,6 +742,14 @@ class NodeSet(BaseSet):
         return self
 
     def values(self, *args):
+        """
+        Recevies tuple of string values to return for all nodes in a set.
+
+        Checks if the given values belong to the model of the NodeSet to be
+        returned in the query. If the values match the expected model properties,
+        they are set to `self.ret_values` on NodeSet object. This will be used in the
+        `build_traversal` function to build the return statement of the query.
+        """
         traversal_model_attributes = dict(self.source_class.__all_properties__)
         args = [arg for arg in args if arg in traversal_model_attributes.keys()]
         self.ret_values = args
