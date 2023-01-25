@@ -744,7 +744,9 @@ class NodeSet(BaseSet):
         return self
 
     def values(self, *args):
-        self.ret_values = args
+        traversal_model_attributes = dict(self.source_class.__all_properties__)
+        args = [arg for arg in args if arg in traversal_model_attributes.keys()]
+        self.ret_values = tuple(args)
         return self
 
 
