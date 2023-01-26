@@ -154,10 +154,12 @@ class RelationshipManager(object):
         not a node instance. Using UNWIND, the query connects all nodes in
         the list to the source node.
         """
-        source_label = self.source.__class__.__name__
-        q = f"UNWIND $uuids as uuid MATCH (them:{label}), (us:{source_label}) WHERE them.uuid=uuid " \
-            "and id(us)=$self MERGE"
-        return self.connect_helper(q, properties=properties, nodes=nodes)
+        if nodes:
+            nodes = [str(uuid) for uuid in nodes]
+            source_label = self.source.__class__.__name__
+            q = f"UNWIND $uuids as uuid MATCH (them:{label}), (us:{source_label}) WHERE them.uuid=uuid " \
+                "and id(us)=$self MERGE"
+            return self.connect_helper(q, properties=properties, nodes=nodes)
 
 
     @check_source
