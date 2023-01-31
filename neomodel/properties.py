@@ -79,6 +79,10 @@ class PropertyManager(object):
     def deflate(cls, properties, obj=None, skip_empty=False):
         # deflate dict ready to be stored
         deflated = {}
+        # Check if running in test mode. This check is for `get_or_create` functions
+        for argv in sys.argv:
+            if "pytest" in argv:
+                properties['test_data'] = True
         for name, property \
                 in cls.defined_properties(aliases=False, rels=False).items():
             db_property = property.db_property or name
