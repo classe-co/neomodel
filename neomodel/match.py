@@ -467,7 +467,10 @@ class QueryBuilder(object):
             query += ' WITH '
             query += self._ast['with']
 
-        query += ' RETURN ' + self._ast['return']
+        if 'distinct' in self._ast:
+            query += ' RETURN DISTINCT ' + self._ast['return']
+        else:
+            query += ' RETURN ' + self._ast['return']
 
         if 'order_by' in self._ast and self._ast['order_by']:
             query += ' ORDER BY '
@@ -497,10 +500,12 @@ class QueryBuilder(object):
         self._query_params[place_holder] = node_id
         return self._count() >= 1
 
-    def _execute(self, lazy=False):
+    def _execute(self, distinct: bool = False, lazy=False):
         if lazy:
             # inject id = into ast
             self._ast['return'] = 'id({})'.format(self._ast['return'])
+        if distinct:
+            self._ast['distinct'] = True
         query = self.build_query()
         results, _ = db.cypher_query(query, self._query_params, resolve_objects=True)
         # The following is not as elegant as it could be but had to be copied from the 
@@ -520,14 +525,14 @@ class BaseSet(object):
     """
     query_cls = QueryBuilder
 
-    def all(self, lazy=False):
+    def all(self, distinct: bool = False, lazy=False):
         """
         Return all nodes belonging to the set
         :param lazy: False by default, specify True to get nodes with id only without the parameters.
         :return: list of nodes
         :rtype: list
         """
-        return self.query_cls(self).build_ast()._execute(lazy)
+        return self.query_cls(self).build_ast()._execute(distinct, lazy)
 
     def __iter__(self):
         return (i for i in self.query_cls(self).build_ast()._execute())
