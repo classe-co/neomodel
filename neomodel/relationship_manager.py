@@ -139,6 +139,20 @@ class RelationshipManager(object):
             "MERGE"
         return self.connect_helper(q, properties, node)
 
+    def bulk_disconnect(self, nodes: List[UUID]):
+        """
+        Disconnect list of nodes from the source node
+
+        :param nodes: a list of node UUIDs which will be connected to the source node
+        """
+        if nodes:
+            nodes = [str(uuid) for uuid in nodes]
+            rel = _rel_helper(lhs='a', rhs='b', ident='r', **self.definition)
+            q = "MATCH (a), (b) WHERE id(a)=$self and b.uuid in $them " \
+                "MATCH " + rel + " DELETE r"
+            print(q, nodes)
+            self.source.cypher(q, {'them': nodes})
+
     @check_source
     def bulk_connect(self, nodes: List[UUID], label, properties=None):
         """
