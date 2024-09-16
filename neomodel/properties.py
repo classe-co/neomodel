@@ -554,7 +554,10 @@ class JSONProperty(Property):
 
     @validator
     def inflate(self, value):
-        return json.loads(value)
+        inflated = json.loads(value)
+        if type(inflated) == str:
+            inflated = json.loads(inflated)
+        return inflated
 
     @validator
     def deflate(self, value):
